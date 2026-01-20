@@ -1,0 +1,34 @@
+{
+  "name": "nodejs-hw",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ivanshakhov128/nodejs-hw.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ivanshakhov128/nodejs-hw/issues"
+  },
+  "homepage": "https://github.com/ivanshakhov128/nodejs-hw#readme",
+  "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "eslint": "^9.39.2",
+    "globals": "^17.0.0",
+    "nodemon": "^3.1.11"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "pino-http": "^11.0.0"
+  }
+}
