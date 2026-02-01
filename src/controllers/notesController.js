@@ -8,19 +8,22 @@ export const getAllNotes = async (req, res, next) => {
     const limit = Number(perPage);
     const skip = (Number(page) - 1) * limit;
 
-    const filter = {};
+    // Используем цепочку методов Mongoose
+    let query = Note.find();
 
     if (tag) {
-      filter.tag = tag;
+      query = query.where('tag').equals(tag);
     }
 
     if (search) {
-      filter.$text = { $search: search };
+      query = query.where({ $text: { $search: search } });
     }
 
-    const totalNotes = await Note.countDocuments(filter);
-
-    const notes = await Note.find(filter).skip(skip).limit(limit);
+    // Одновременный запрос totalNotes и notes
+    const [totalNotes, notes] = await Promise.all([
+      Note.countDocuments(query.getFilter()), // total
+      query.skip(skip).limit(limit), // выборка
+    ]);
 
     res.status(200).json({
       page: Number(page),
