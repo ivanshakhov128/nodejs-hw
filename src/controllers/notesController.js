@@ -1,10 +1,6 @@
 import createHttpError from 'http-errors';
 import { Note } from '../models/note.js';
 
-/**
- * GET /notes
- * Фильтрация + пагинация
- */
 export const getAllNotes = async (req, res, next) => {
   try {
     const { page = 1, perPage = 10, tag, search = '' } = req.query;
@@ -38,9 +34,6 @@ export const getAllNotes = async (req, res, next) => {
   }
 };
 
-/**
- * GET /notes/:noteId
- */
 export const getNoteById = async (req, res, next) => {
   try {
     const note = await Note.findById(req.params.noteId);
@@ -55,9 +48,6 @@ export const getNoteById = async (req, res, next) => {
   }
 };
 
-/**
- * POST /notes
- */
 export const createNote = async (req, res, next) => {
   try {
     const note = await Note.create(req.body);
@@ -67,9 +57,6 @@ export const createNote = async (req, res, next) => {
   }
 };
 
-/**
- * PATCH /notes/:noteId
- */
 export const updateNote = async (req, res, next) => {
   try {
     const note = await Note.findByIdAndUpdate(req.params.noteId, req.body, {
@@ -86,9 +73,6 @@ export const updateNote = async (req, res, next) => {
   }
 };
 
-/**
- * DELETE /notes/:noteId
- */
 export const deleteNote = async (req, res, next) => {
   try {
     const note = await Note.findByIdAndDelete(req.params.noteId);
@@ -97,7 +81,7 @@ export const deleteNote = async (req, res, next) => {
       throw createHttpError(404, 'Note not found');
     }
 
-    res.status(204).send();
+    res.status(200).json(note);
   } catch (error) {
     next(error);
   }
