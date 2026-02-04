@@ -23,14 +23,12 @@ const userSchema = new Schema(
   },
 );
 
-// Видаляємо пароль при JSON-відповіді
 userSchema.methods.toJSON = function () {
   const obj = this.toObject();
   delete obj.password;
   return obj;
 };
 
-// Якщо username не передали — ставимо email
 userSchema.pre('save', function (next) {
   if (!this.username) {
     this.username = this.email;
