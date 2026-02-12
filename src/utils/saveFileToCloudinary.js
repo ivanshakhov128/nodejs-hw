@@ -1,26 +1,27 @@
-import cloudinary from 'cloudinary';
-import fs from 'fs/promises';
+import { v2 as cloudinary } from 'cloudinary';
+import { Readable } from 'stream';
 
-cloudinary.v2.config({
+cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-/**
- * Upload file to Cloudinary and remove local file
- * @param {string} filePath
- * @returns {Promise<{ url: string, publicId: string }>}
- */
-export const saveFileToCloudinary = async (filePath) => {
-  const result = await cloudinary.v2.uploader.upload(filePath, {
-    folder: 'notes',
+export const saveFileToCloudinary = (buffer) => {
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        resource_type: 'image',
+        overwrite: true,
+        unique_filename: true,
+        folder: 'avatars',
+      },
+      (error, result) => {
+        if (error) return reject(error);
+        resolve(result);
+      },
+    );
+
+    Readable.from(buffer).pipe(uploadStream);
   });
-
-  await fs.unlink(filePath);
-
-  return {
-    url: result.secure_url,
-    publicId: result.public_id,
-  };
 };

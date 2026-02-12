@@ -18,24 +18,19 @@ dotenv.config();
 
 const app = express();
 
-// middleware
 app.use(logger);
 app.use(cors());
 app.use(express.json());
 app.use(cookieParser());
 
-// routes
-app.use('/notes', notesRoutes);
-app.use('/auth', authRoutes);
-app.use('/users', userRoutes); // 👈 ДОБАВИТЬ
+// ✅ routes без префиксов (пути уже в роутерах)
+app.use(notesRoutes);
+app.use(authRoutes);
+app.use(userRoutes);
 
-// celebrate validation errors
 app.use(celebrateErrors());
 
-// 404
 app.use(notFoundHandler);
-
-// global error handler
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 3000;
