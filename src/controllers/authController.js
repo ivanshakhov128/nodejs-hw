@@ -7,9 +7,7 @@ import createHttpError from 'http-errors';
 
 import { User } from '../models/user.js';
 import { Session } from '../models/session.js';
-
-import { createSession } from '../utils/createSession.js';
-import { setSessionCookies } from '../utils/setSessionCookies.js';
+import { createSession, setSessionCookies } from '../services/auth.js';
 import { sendEmail } from '../utils/sendMail.js';
 
 const templatePath = path.resolve(
@@ -18,33 +16,39 @@ const templatePath = path.resolve(
   'reset-password-email.html',
 );
 
+//
+// ================= REGISTER =================
+//
 export const registerUser = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    const existing = await User.findOne({ email });
-    if (existing) {
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
       throw createHttpError(400, 'Email in use');
     }
 
-    const hash = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = await User.create({
       email,
-      password: hash,
+      password: hashedPassword,
       username: email,
     });
 
     const session = await createSession(user._id);
     setSessionCookies(res, session);
 
-    // ✅ вернуть документ пользователя напрямую (toJSON уберёт password)
+    // возвращаем документ напрямую (password убирается через toJSON)
     res.status(201).json(user);
   } catch (error) {
     next(error);
   }
 };
 
+//
+// ================= LOGIN =================
+//
 export const loginUser = async (req, res, next) => {
   try {
     const { email, password } = req.body;
@@ -54,25 +58,26 @@ export const loginUser = async (req, res, next) => {
       throw createHttpError(401, 'Email or password is wrong');
     }
 
-    const ok = await bcrypt.compare(password, user.password);
-    if (!ok) {
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
       throw createHttpError(401, 'Email or password is wrong');
     }
 
-    // ✅ удалить старые сессии пользователя
+    // удаляем все старые сессии пользователя
     await Session.deleteMany({ userId: user._id });
 
-    // ✅ создать новую
     const session = await createSession(user._id);
     setSessionCookies(res, session);
 
-    // ✅ вернуть пользователя (а не accessToken)
     res.status(200).json(user);
   } catch (error) {
     next(error);
   }
 };
 
+//
+// ================= LOGOUT =================
+//
 export const logoutUser = async (req, res, next) => {
   try {
     const { sessionId } = req.cookies;
@@ -83,14 +88,17 @@ export const logoutUser = async (req, res, next) => {
 
     res.clearCookie('sessionId');
     res.clearCookie('refreshToken');
+    res.clearCookie('accessToken'); // обязательно
 
-    // ✅ 204 без тела
     res.status(204).send();
   } catch (error) {
     next(error);
   }
 };
 
+//
+// ================= REFRESH =================
+//
 export const refreshUserSession = async (req, res, next) => {
   try {
     const { sessionId, refreshToken } = req.cookies;
@@ -114,19 +122,24 @@ export const refreshUserSession = async (req, res, next) => {
       throw createHttpError(401, 'Unauthorized');
     }
 
-    // ✅ удалить старую сессию и создать новую
+    // удаляем старую сессию
     await Session.findByIdAndDelete(sessionId);
+
+    // создаём новую
     const newSession = await createSession(session.userId);
     setSessionCookies(res, newSession);
 
-    const user = await User.findById(session.userId);
-
-    res.status(200).json(user);
+    res.status(200).json({
+      message: 'Session refreshed successfully',
+    });
   } catch (error) {
     next(error);
   }
 };
 
+//
+// ================= REQUEST RESET EMAIL =================
+//
 export const requestResetEmail = async (req, res, next) => {
   try {
     const { email } = req.body;
@@ -145,12 +158,13 @@ export const requestResetEmail = async (req, res, next) => {
       { expiresIn: '15m' },
     );
 
-    const source = await fs.readFile(templatePath, 'utf-8');
-    const template = handlebars.compile(source);
+    const html = await fs.readFile(templatePath, 'utf-8');
+    const template = handlebars.compile(html);
 
     const link = `${process.env.FRONTEND_DOMAIN}/reset-password?token=${token}`;
 
     await sendEmail({
+      from: process.env.SMTP_FROM,
       to: user.email,
       subject: 'Reset password',
       html: template({ name: user.username, link }),
@@ -166,6 +180,9 @@ export const requestResetEmail = async (req, res, next) => {
   }
 };
 
+//
+// ================= RESET PASSWORD =================
+//
 export const resetPassword = async (req, res, next) => {
   try {
     const { token, password } = req.body;

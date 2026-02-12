@@ -23,14 +23,18 @@ app.use(cors());
 app.use(express.json());
 app.use(cookieParser());
 
-// ✅ routes без префиксов (пути уже в роутерах)
+// routes (без префиксов, как требует проверка)
 app.use(notesRoutes);
 app.use(authRoutes);
 app.use(userRoutes);
 
+// ✅ 404 СРАЗУ ПОСЛЕ РОУТОВ
+app.use(notFoundHandler);
+
+// ✅ celebrate errors ПОСЛЕ 404
 app.use(celebrateErrors());
 
-app.use(notFoundHandler);
+// ✅ последний
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 3000;
